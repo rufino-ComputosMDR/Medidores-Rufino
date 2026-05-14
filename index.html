@@ -7,63 +7,34 @@
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
     <style>
         body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; font-family: 'Segoe UI', sans-serif; background-color: #f4f7f9; }
         #map { position: absolute; top: 0; bottom: 0; width: 100%; z-index: 1; }
-
-        /* Buscador */
+        
         #buscador-container { position: absolute; top: 20px; left: 50px; z-index: 1000; width: 300px; }
         #input-busqueda { width: 100%; padding: 12px 20px; border-radius: 25px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.2); outline: none; }
-        #resultados-busqueda { background: white; border-radius: 10px; margin-top: 8px; max-height: 200px; overflow-y: auto; display: none; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        #resultados-busqueda { background: white; border-radius: 10px; margin-top: 8px; max-height: 200px; overflow-y: auto; display: none; box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 1001; }
         .resultado-item { padding: 10px 15px; cursor: pointer; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
-        .resultado-item:hover { background: #f0f9ff; color: #3498db; }
 
-        /* Ficha Lateral */
-        #ficha-medidor {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            width: 310px;
-            background: white;
-            z-index: 1000;
-            border-radius: 15px;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.2);
-            padding: 20px;
-            display: none;
-            max-height: 90vh;
-        }
-        .header-ficha h2 { margin: 0; color: #2c3e50; font-size: 1.1rem; border-bottom: 2px solid #5dade2; padding-bottom: 8px; margin-bottom: 12px; }
-        .info-item { margin: 6px 0; font-size: 0.85rem; color: #555; display: flex; align-items: center; justify-content: space-between; }
-        .info-label { font-weight: bold; color: #2c3e50; }
-        .btn-cerrar { float: right; border: none; background: #eee; border-radius: 50%; width: 26px; height: 26px; cursor: pointer; }
+        #modal-reporte { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(3px); }
+        .modal-content { background-color: white; margin: 2% auto; padding: 25px; border-radius: 15px; width: 90%; max-width: 1000px; height: 90vh; display: flex; flex-direction: column; }
+        .scroll-area { flex-grow: 1; overflow-y: auto; margin-top: 15px; border: 1px solid #eee; background: #fff; }
         
-        /* Tendencia */
-        .tendencia { padding: 2px 8px; border-radius: 12px; font-weight: bold; font-size: 0.75rem; }
-        .subio { background-color: #fdedec; color: #e74c3c; }
-        .bajo { background-color: #eafaf1; color: #27ae60; }
+        .tabla-preview { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .tabla-preview th { position: sticky; top: 0; background: #2c3e50; color: white; padding: 10px; z-index: 10; }
+        .tabla-preview td { border: 1px solid #ddd; padding: 6px; }
+        .fila-top { background-color: #fff4e6 !important; font-weight: bold; }
+        .total-row { background: #f1f2f6; font-weight: bold; }
 
-        .chart-container { position: relative; height: 180px; width: 100%; margin-top: 15px; }
-
-        /* Leyenda de Puntos */
-        #leyenda-puntos {
-            position: absolute;
-            bottom: 30px;
-            left: 20px;
-            z-index: 1000;
-            background: white;
-            padding: 10px 15px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            font-size: 12px;
-            color: #2c3e50;
-        }
-        .item-leyenda { display: flex; align-items: center; margin-bottom: 5px; }
-        .item-leyenda:last-child { margin-bottom: 0; }
-        .circulo { width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; border: 1px solid #fff; }
+        #panel-controles { position: absolute; bottom: 30px; left: 20px; z-index: 1000; background: white; padding: 15px; border-radius: 12px; width: 230px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
+        .btn-accion { width: 100%; padding: 10px; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 8px; font-size: 12px; }
+        
+        #ficha-medidor { position: absolute; top: 20px; right: 20px; width: 310px; background: white; z-index: 1000; border-radius: 15px; padding: 20px; display: none; box-shadow: 0 8px 30px rgba(0,0,0,0.2); }
     </style>
 </head>
 <body>
@@ -75,30 +46,33 @@
 
     <div id="map"></div>
 
-    <div id="leyenda-puntos">
-        <div class="item-leyenda">
-            <span class="circulo" style="background: #e67e22; width: 12px; height: 12px;"></span> 
-            <strong>Top 10 Mayor Consumo</strong>
-        </div>
-        <div class="item-leyenda">
-            <span class="circulo" style="background: #5dade2;"></span> 
-            Consumo Normal
+    <div id="panel-controles">
+        <label style="font-size: 11px; font-weight: bold; color: #7f8c8d;">REPORTES DISPONIBLES:</label>
+        <select id="select-periodo" style="width:100%; padding:5px; margin-top:5px;"></select>
+        <button class="btn-accion" style="background: #2c3e50;" onclick="verVistaPrevia()">📊 Reporte por Mes</button>
+        <button class="btn-accion" style="background: #16a085;" onclick="verVistaPreviaGeneral()">📅 Reporte Histórico Total</button>
+    </div>
+
+    <div id="modal-reporte">
+        <div class="modal-content">
+            <div>
+                <button style="float:right; border:none; background:none; font-size:24px; cursor:pointer;" onclick="cerrarModal()">×</button>
+                <h2 id="preview-titulo" style="margin:0; color:#2c3e50;">Vista Previa</h2>
+                <p id="resumen-texto" style="margin: 10px 0; color: #666; font-size: 14px;"></p>
+            </div>
+            <div class="scroll-area"><div id="preview-tabla-container"></div></div>
+            <button id="btn-descarga-final" class="btn-accion" style="background: #e67e22; height: 45px; font-size: 14px; margin-top: 15px;">📥 Descargar Reporte en PDF</button>
         </div>
     </div>
 
     <div id="ficha-medidor">
-        <button class="btn-cerrar" onclick="document.getElementById('ficha-medidor').style.display='none'">×</button>
-        <div class="header-ficha">
-            <h2 id="titulo-medidor">Detalles</h2>
+        <button onclick="this.parentElement.style.display='none'" style="float:right; cursor:pointer; border:none; background:none; font-size:20px;">×</button>
+        <h2 id="titulo-medidor" style="font-size:1.1rem; margin:0 0 10px 0; color:#2c3e50;">Detalles</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <div id="info-domicilio" style="font-size:0.85rem; color:#666; max-width: 70%;"></div>
+            <div id="indicador-tendencia"></div>
         </div>
-        <div class="info-item">
-            <span><span class="info-label">📍 Domicilio:</span> <span id="info-domicilio"></span></span>
-            <span id="indicador-tendencia"></span>
-        </div>
-        <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
-        <div class="chart-container">
-            <canvas id="graficoMediciones"></canvas>
-        </div>
+        <div style="height:200px;"><canvas id="graficoMediciones"></canvas></div>
     </div>
 
     <script src="script.js"></script>
