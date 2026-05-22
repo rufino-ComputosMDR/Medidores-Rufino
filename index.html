@@ -13,66 +13,111 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; font-family: 'Segoe UI', sans-serif; background-color: #f4f7f9; }
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f9; }
         #map { position: absolute; top: 0; bottom: 0; width: 100%; z-index: 1; }
         
+        /* Contenedor del Logo en la Página */
+        #logo-pagina-container { position: absolute; top: 20px; right: 20px; z-index: 1000; background: white; padding: 10px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; }
+        #logo-pagina { height: 45px; width: auto; object-fit: contain; }
+
+        /* Buscador Superior Izquierdo */
         #buscador-container { position: absolute; top: 20px; left: 50px; z-index: 1000; width: 300px; }
-        #input-busqueda { width: 100%; padding: 12px 20px; border-radius: 25px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.2); outline: none; }
+        #input-busqueda { width: 100%; padding: 12px 20px; border-radius: 25px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.2); outline: none; box-sizing: border-box; }
         #resultados-busqueda { background: white; border-radius: 10px; margin-top: 8px; max-height: 200px; overflow-y: auto; display: none; box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 1001; }
         .resultado-item { padding: 10px 15px; cursor: pointer; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
+        .resultado-item:hover { background-color: #f8f9fa; }
 
+        /* Panel de Control de Meses (Inferior Izquierdo) */
+        #panel-controles { position: absolute; bottom: 30px; left: 20px; z-index: 1000; background: white; padding: 15px; border-radius: 12px; width: 240px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); box-sizing: border-box; }
+        .btn-accion { width: 100%; padding: 10px; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 8px; font-size: 12px; transition: background 0.2s; }
+        .btn-accion:hover { filter: brightness(0.9); }
+        
+        /* Modal de Reportes */
         #modal-reporte { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(3px); }
-        .modal-content { background-color: white; margin: 2% auto; padding: 25px; border-radius: 15px; width: 90%; max-width: 1000px; height: 90vh; display: flex; flex-direction: column; }
-        .scroll-area { flex-grow: 1; overflow-y: auto; margin-top: 15px; border: 1px solid #eee; background: #fff; }
+        .modal-content { background-color: white; margin: 2% auto; padding: 25px; border-radius: 15px; width: 95%; max-width: 1200px; height: 85vh; display: flex; flex-direction: column; box-sizing: border-box; }
+        .scroll-area { flex-grow: 1; overflow-y: auto; overflow-x: auto; margin-top: 15px; border: 1px solid #eee; background: #fff; border-radius: 8px; }
         
-        .tabla-preview { width: 100%; border-collapse: collapse; font-size: 12px; }
-        .tabla-preview th { position: sticky; top: 0; background: #2c3e50; color: white; padding: 10px; z-index: 10; }
-        .tabla-preview td { border: 1px solid #ddd; padding: 6px; }
-        .fila-top { background-color: #fff4e6 !important; font-weight: bold; }
-        .total-row { background: #f1f2f6; font-weight: bold; }
+        /* Tablas */
+        .tabla-preview { width: 100%; border-collapse: collapse; font-size: 11px; text-align: left; white-space: nowrap; }
+        .tabla-preview th { position: sticky; top: 0; background: #2c3e50; color: white; padding: 10px 8px; z-index: 10; border: 1px solid #34495e; }
+        .tabla-preview td { border: 1px solid #e5e7eb; padding: 8px 8px; }
+        .tabla-preview tr:nth-child(even) { background-color: #f9fafb; }
+        .col-total { font-weight: bold; background-color: #f0fdf4 !important; color: #166534; text-align: right; }
+        .total-row { background: #e2e8f0 !important; font-weight: bold; font-size: 12px; color: #1e293b; }
 
-        #panel-controles { position: absolute; bottom: 30px; left: 20px; z-index: 1000; background: white; padding: 15px; border-radius: 12px; width: 230px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
-        .btn-accion { width: 100%; padding: 10px; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 8px; font-size: 12px; }
+        /* Ficha Lateral Derecha */
+        #ficha-medidor { position: absolute; top: 90px; right: 20px; width: 320px; background: white; z-index: 1000; border-radius: 15px; padding: 20px; display: none; box-shadow: 0 8px 30px rgba(0,0,0,0.2); box-sizing: border-box; }
+        .btn-cerrar { float: right; border: none; background: none; font-size: 24px; cursor: pointer; color: #999; line-height: 20px; }
+        .btn-cerrar:hover { color: #333; }
+        #titulo-medidor { font-size: 1.2rem; margin: 0 0 5px 0; color: #2c3e50; }
         
-        #ficha-medidor { position: absolute; top: 20px; right: 20px; width: 310px; background: white; z-index: 1000; border-radius: 15px; padding: 20px; display: none; box-shadow: 0 8px 30px rgba(0,0,0,0.2); }
+        /* Corrección de la advertencia CSS usando Flexbox Moderno */
+        .contenedor-alineado { display: flex; justify-content: space-between; align-items: center; line-height: 1.4; margin-top: 5px; }
+        #info-domicilio { font-size: 0.85rem; color: #7f8c8d; max-width: 75%; }
+        #indicador-tendencia { font-size: 0.9rem; }
+        
+        #datos-mes-activo { background: #f8f9fa; padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 0.85rem; border-left: 4px solid #3498db; }
+        #datos-mes-activo div { margin-bottom: 4px; }
+        #datos-mes-activo div:last-child { margin-bottom: 0; }
+        
+        #grafico-container { height: 180px; margin-top: 15px; position: relative; }
     </style>
 </head>
 <body>
 
+    <div id="logo-pagina-container">
+        <img id="logo-pagina" src="logo.png" alt="Logo Corporativo">
+    </div>
+
     <div id="buscador-container">
-        <input type="text" id="input-busqueda" placeholder="🔍 Buscar domicilio o medidor...">
+        <input type="text" id="input-busqueda" placeholder="🔍 Buscar domicilio, ubicación o cuenta...">
         <div id="resultados-busqueda"></div>
     </div>
 
     <div id="map"></div>
 
     <div id="panel-controles">
-        <label style="font-size: 11px; font-weight: bold; color: #7f8c8d;">REPORTES DISPONIBLES:</label>
-        <select id="select-periodo" style="width:100%; padding:5px; margin-top:5px;"></select>
-        <button class="btn-accion" style="background: #2c3e50;" onclick="verVistaPrevia()">📊 Reporte por Mes</button>
+        <label style="font-size: 11px; font-weight: bold; color: #7f8c8d; display:block; margin-bottom:4px;">REPORTES DISPONIBLES:</label>
+        <select id="select-periodo" style="width:100%; padding:8px; border-radius: 5px; border: 1px solid #ccc; outline: none; font-weight:bold; color:#2c3e50;" onchange="actualizarPuntosPorMes()"></select>
+        
+        <button class="btn-accion" style="background: #2c3e50; margin-top:12px;" onclick="verVistaPrevia()">📊 Reporte del Mes</button>
         <button class="btn-accion" style="background: #16a085;" onclick="verVistaPreviaGeneral()">📅 Reporte Histórico Total</button>
     </div>
 
     <div id="modal-reporte">
         <div class="modal-content">
-            <div>
-                <button style="float:right; border:none; background:none; font-size:24px; cursor:pointer;" onclick="cerrarModal()">×</button>
-                <h2 id="preview-titulo" style="margin:0; color:#2c3e50;">Vista Previa</h2>
-                <p id="resumen-texto" style="margin: 10px 0; color: #666; font-size: 14px;"></p>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <h2 id="preview-titulo" style="margin:0; color:#2c3e50;">Vista Previa de Reporte</h2>
+                    <p id="resumen-texto" style="margin: 8px 0 0 0; color: #666; font-size: 13px;"></p>
+                </div>
+                <button class="btn-cerrar" onclick="cerrarModal()">×</button>
             </div>
-            <div class="scroll-area"><div id="preview-tabla-container"></div></div>
+            <div class="scroll-area">
+                <div id="preview-tabla-container"></div>
+            </div>
             <button id="btn-descarga-final" class="btn-accion" style="background: #e67e22; height: 45px; font-size: 14px; margin-top: 15px;">📥 Descargar Reporte en PDF</button>
         </div>
     </div>
 
     <div id="ficha-medidor">
-        <button onclick="this.parentElement.style.display='none'" style="float:right; cursor:pointer; border:none; background:none; font-size:20px;">×</button>
-        <h2 id="titulo-medidor" style="font-size:1.1rem; margin:0 0 10px 0; color:#2c3e50;">Detalles</h2>
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <div id="info-domicilio" style="font-size:0.85rem; color:#666; max-width: 70%;"></div>
+        <button class="btn-cerrar" onclick="document.getElementById('ficha-medidor').style.display='none'">×</button>
+        <h2 id="titulo-medidor">Cuenta: </h2>
+        <div class="contenedor-alineado">
+            <span id="info-domicilio">...</span>
             <div id="indicador-tendencia"></div>
         </div>
-        <div style="height:200px;"><canvas id="graficoMediciones"></canvas></div>
+        
+        <div id="datos-mes-activo">
+            <div><strong>Medidor:</strong> <span id="lbl-medidor">-</span></div>
+            <div><strong>Lectura del Mes:</strong> <span id="lbl-lectura">-</span></div>
+            <div><strong>Consumo del Mes:</strong> <span id="lbl-consumo" style="font-weight:bold; color:#2980b9;">-</span></div>
+            <div style="font-size:11px; color:#7f8c8d; margin-top:4px;">Período consultado: <span id="lbl-periodo-nombre">-</span></div>
+        </div>
+
+        <div id="grafico-container">
+            <canvas id="graficoMediciones"></canvas>
+        </div>
     </div>
 
     <script src="script.js"></script>
