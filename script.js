@@ -1,12 +1,11 @@
 const map = L.map('map', {
-    zoomControl: window.innerWidth > 767 // Mueve u oculta controles nativos en pantallas móviles si estorban
+    zoomControl: window.innerWidth > 767 
 }).setView([-34.262, -62.710], 15); 
 
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
     attribution: '©OpenStreetMap'
 }).addTo(map);
 
-// Mover el control de zoom si es movil para que no colisione con el buscador
 if(window.innerWidth <= 767) {
     L.control.zoom({ position: 'topright' }).addTo(map);
 }
@@ -42,7 +41,6 @@ fetch('lecturas.geojson')
     .then(data => {
         datosMedidores = data.features;
 
-        // INDEXAR MEDIDORES PARA TRASLADAR ATRIBUTOS A LAS LECTURAS HISTÓRICAS
         const mapaMunicipalesBase = {};
         datosMedidores.forEach(f => {
             if (f.properties && f.properties.Cuenta) {
@@ -51,7 +49,6 @@ fetch('lecturas.geojson')
             }
         });
 
-        // INYECCIÓN: Forzar que cada registro de lectura sepa si es municipal
         todasLasLecturas.forEach(r => {
             const padronNormalizado = String(r.Padron).trim();
             if (mapaMunicipalesBase[padronNormalizado]) {
@@ -180,7 +177,7 @@ function configurarBuscador() {
                     mostrarFicha(f.properties);
                     resultados.style.display = 'none';
                     input.value = direccion;
-                    input.blur(); // Cierra el teclado en celulares al seleccionar
+                    input.blur(); 
                 };
                 resultados.appendChild(div);
             });

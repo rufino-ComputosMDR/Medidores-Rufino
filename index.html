@@ -16,19 +16,47 @@
         body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f9; }
         #map { position: absolute; top: 0; bottom: 0; width: 100%; z-index: 1; }
         
-        /* Contenedor del Logo en la Página */
+        /* Contenedor del Logo en la Página (Escritorio) */
         #logo-pagina-container { position: absolute; top: 20px; right: 20px; z-index: 1000; background: white; padding: 10px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; }
         #logo-pagina { height: 45px; width: auto; object-fit: contain; }
 
-        /* Buscador Superior Izquierdo */
-        #buscador-container { position: absolute; top: 20px; left: 20px; z-index: 1000; width: 300px; }
+        /* Columna de Controles Superior Izquierda (Une Buscador + Botón Municipal) */
+        #columna-superior-izquierda { 
+            position: absolute; 
+            top: 20px; 
+            left: 20px; 
+            z-index: 1000; 
+            width: 300px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 10px; 
+        }
+        
+        #buscador-container { position: relative; width: 100%; }
         #input-busqueda { width: 100%; padding: 12px 20px; border-radius: 25px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.2); outline: none; box-sizing: border-box; }
-        #resultados-busqueda { background: white; border-radius: 10px; margin-top: 8px; max-height: 200px; overflow-y: auto; display: none; box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 1001; }
+        #resultados-busqueda { background: white; border-radius: 10px; margin-top: 8px; max-height: 200px; overflow-y: auto; display: none; box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 1001; position: absolute; width: 100%; }
         .resultado-item { padding: 10px 15px; cursor: pointer; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
         .resultado-item:hover { background-color: #f8f9fa; }
 
-        /* Botón de Filtro Rápido Municipal */
-        #btn-filtro-municipal { position: absolute; top: 20px; left: 335px; z-index: 1000; padding: 12px 20px; background: white; color: #2c3e50; border: none; border-radius: 25px; font-weight: bold; font-size: 13px; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: all 0.3s ease; display: flex; align-items: center; gap: 8px; box-sizing: border-box; }
+        /* Botón de Filtro Municipal (Ubicado debajo de la búsqueda) */
+        #btn-filtro-municipal { 
+            width: 100%;
+            padding: 11px 20px; 
+            background: white; 
+            color: #2c3e50; 
+            border: none; 
+            border-radius: 25px; 
+            font-weight: bold; 
+            font-size: 13px; 
+            cursor: pointer; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2); 
+            transition: all 0.3s ease; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            gap: 8px; 
+            box-sizing: border-box; 
+        }
         #btn-filtro-municipal.activo { background: #16a085; color: white; }
 
         /* Panel de Control de Meses (Inferior Izquierdo) */
@@ -53,7 +81,7 @@
         .col-total { font-weight: bold; background-color: #f0fdf4 !important; color: #166534; text-align: right; }
         .total-row { background: #e2e8f0 !important; font-weight: bold; font-size: 12px; color: #1e293b; }
 
-        /* Ficha Lateral Derecha (Escritorio) */
+        /* Ficha Lateral / Bottom Sheet */
         #ficha-medidor { position: absolute; top: 90px; right: 20px; width: 320px; background: white; z-index: 1000; border-radius: 15px; padding: 20px; display: none; box-shadow: 0 8px 30px rgba(0,0,0,0.2); box-sizing: border-box; }
         .btn-cerrar { float: right; border: none; background: none; font-size: 24px; cursor: pointer; color: #999; line-height: 20px; }
         .btn-cerrar:hover { color: #333; }
@@ -69,23 +97,18 @@
         
         #grafico-container { height: 180px; margin-top: 15px; position: relative; }
 
-        /* =======================================================
-           REGLAS CSS RESPONSIVAS PARA PANTALLAS DE CELULAR VERTICAL
-           ======================================================= */
+        /* ==========================================
+           REGLAS RESPONSIVAS PARA MÓVIL VERTICAL
+           ========================================== */
         @media (max-width: 767px) {
-            /* 1. Reacomodar cabecera (Buscador y Botón Municipal) */
-            #buscador-container { width: calc(100% - 40px); top: 15px; left: 20px; }
-            #btn-filtro-municipal { top: 75px; left: 20px; width: calc(100% - 40px); justify-content: center; padding: 10px; font-size: 12px; }
-            #logo-pagina-container { display: none; } /* Ocultar logo en móvil para liberar espacio visual */
+            #columna-superior-izquierda { width: calc(100% - 40px); top: 15px; left: 20px; }
+            #logo-pagina-container { display: none; } 
 
-            /* 2. Adaptar Controles Inferiores */
             #panel-controles { bottom: 15px; left: 10px; width: calc(100% - 20px); padding: 12px; border-radius: 12px; box-shadow: 0 -4px 20px rgba(0,0,0,0.15); }
             
-            /* 3. Transformar Ficha en Bottom Sheet Móvil */
             #ficha-medidor { top: auto; bottom: 0; right: 0; left: 0; width: 100%; border-radius: 20px 20px 0 0; padding: 20px; max-height: 60vh; overflow-y: auto; box-shadow: 0 -8px 30px rgba(0,0,0,0.25); animation: subirPanel 0.3s ease-out; }
             #grafico-container { height: 140px; }
 
-            /* 4. Adaptar Modales y Contenedor de Tablas de Reporte */
             .modal-content { width: 98%; height: 90vh; margin: 5vh auto; padding: 15px; }
             #preview-titulo { font-size: 16px; }
             #resumen-texto { font-size: 11px; }
@@ -105,14 +128,16 @@
         <img id="logo-pagina" src="logo.png" alt="Logo Corporativo">
     </div>
 
-    <div id="buscador-container">
-        <input type="text" id="input-busqueda" placeholder="🔍 Buscar domicilio o cuenta...">
-        <div id="resultados-busqueda"></div>
-    </div>
+    <div id="columna-superior-izquierda">
+        <div id="buscador-container">
+            <input type="text" id="input-busqueda" placeholder="🔍 Buscar domicilio o cuenta...">
+            <div id="resultados-busqueda"></div>
+        </div>
 
-    <button id="btn-filtro-municipal" onclick="toggleFiltroMunicipal()">
-        <span>🏛️</span> Medidores Municipales
-    </button>
+        <button id="btn-filtro-municipal" onclick="toggleFiltroMunicipal()">
+            <span>🏛️</span> Medidores Municipales
+        </button>
+    </div>
 
     <div id="map"></div>
 
