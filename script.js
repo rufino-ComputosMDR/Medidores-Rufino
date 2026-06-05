@@ -8,6 +8,7 @@ let miGrafico;
 let datosMedidores = [];      
 let todasLasLecturas = [];    
 let capaPuntosMapa = null;    
+let filtroMunicipalActivo = false; 
 
 const buscarClaveAnio = (obj) => {
     return Object.keys(obj).find(k => k.toLowerCase().includes("liq-a")) || "Liq-Año";
@@ -23,7 +24,7 @@ const formatearPeriodoISO = (cuota, anio) => {
     return `${anio}-${mesStr}`;
 };
 
-// 1. CARGA INICIAL COMPLETA
+// 1. CARGA INICIAL COMPLETA CON CRUCE DE ATRIBUTOS
 fetch('lecturas.geojson')
     .then(res => res.json())
     .then(data => {
@@ -33,6 +34,23 @@ fetch('lecturas.geojson')
     .then(res => res.json())
     .then(data => {
         datosMedidores = data.features;
+
+        // INDEXAR MEDIDORES PARA TRASLADAR ATRIBUTOS A LAS LECTURAS HISTÓRICAS
+        const mapaMunicipalesBase = {};
+        datosMedidores.forEach(f => {
+            if (f.properties && f.properties.Cuenta) {
+                const cuentaNormalizada = String(f.properties.Cuenta).trim();
+                mapaMunicipalesBase[cuentaNormalizada] = String(f.properties["Dep-Munic"] || "").toUpperCase() === "SI";
+            }
+        });
+
+        // INYECCIÓN DE DEFENSA: Forzar que cada registro de lectura sepa si es municipal
+        todasLasLecturas.forEach(r => {
+            const padronNormalizado = String(r.Padron).trim();
+            if (mapaMunicipalesBase[padronNormalizado]) {
+                r["Dep-Munic"] = "SI";
+            }
+        });
 
         const periodosUnicos = [];
         const mapeoClaves = {};
@@ -70,6 +88,17 @@ fetch('lecturas.geojson')
     })
     .catch(err => console.error("Error cargando bases de datos:", err));
 
+function toggleFiltroMunicipal() {
+    filtroMunicipalActivo = !filtroMunicipalActivo;
+    const btn = document.getElementById('btn-filtro-municipal');
+    if (filtroMunicipalActivo) {
+        btn.classList.add('activo');
+    } else {
+        btn.classList.remove('activo');
+    }
+    actualizarPuntosPorMes();
+}
+
 // 2. REFRESCAR PUNTOS EN EL MAPA
 function actualizarPuntosPorMes() {
     const periodoSeleccionado = document.getElementById('select-periodo').value;
@@ -78,6 +107,11 @@ function actualizarPuntosPorMes() {
 
     if (capaPuntosMapa) {
         map.removeLayer(capaPuntosMapa);
+    }
+
+    let medidoresAFiltrar = datosMedidores;
+    if (filtroMunicipalActivo) {
+        medidoresAFiltrar = datosMedidores.filter(f => String(f.properties["Dep-Munic"]).toUpperCase() === "SI");
     }
 
     const lecturasDelMes = todasLasLecturas.filter(r => String(r["Liq-Cuota"]) === cuota && String(r[buscarClaveAnio(r)]) === anio);
@@ -89,7 +123,7 @@ function actualizarPuntosPorMes() {
         mapaLecturasRapido[String(l.Padron).trim()] = l;
     });
 
-    capaPuntosMapa = L.geoJSON({ type: "FeatureCollection", features: datosMedidores }, {
+    capaPuntosMapa = L.geoJSON({ type: "FeatureCollection", features: medidoresAFiltrar }, {
         pointToLayer: (feature, latlng) => {
             const idCuenta = String(feature.properties.Cuenta).trim();
             const lecturaAsociada = mapaLecturasRapido[idCuenta];
@@ -243,8 +277,14 @@ function verVistaPrevia() {
     const periodo = document.getElementById('select-periodo').value;
     if (!periodo) return;
     const [cuota, anio] = periodo.split('|');
+    const soloMunicipales = document.getElementById('chk-reporte-municipal').checked;
 
-    const filtrados = todasLasLecturas.filter(r => String(r["Liq-Cuota"]) === cuota && String(r[buscarClaveAnio(r)]) === anio);
+    let filtrados = todasLasLecturas.filter(r => String(r["Liq-Cuota"]) === cuota && String(r[buscarClaveAnio(r)]) === anio);
+    
+    if (soloMunicipales) {
+        filtrados = filtrados.filter(r => String(r["Dep-Munic"]).toUpperCase() === "SI");
+    }
+
     const formatoMesLabel = formatearPeriodoISO(cuota, anio);
 
     const mapaDireccionesMedidores = {};
@@ -254,8 +294,9 @@ function verVistaPrevia() {
         }
     });
 
-    document.getElementById('preview-titulo').innerText = `Reporte Mes: Período ${formatoMesLabel}`;
-    document.getElementById('resumen-texto').innerText = `Total de medidores liquidados en este mes: ${filtrados.length}`;
+    const subTituloFiltro = soloMunicipales ? " (DEPENDENCIAS MUNICIPALES)" : "";
+    document.getElementById('preview-titulo').innerText = `Reporte Mes: Período ${formatoMesLabel}${subTituloFiltro}`;
+    document.getElementById('resumen-texto').innerText = `Total de medidores liquidados en este rango: ${filtrados.length}`;
 
     let htmlTabla = `<table class="tabla-preview" id="tabla-exportar">
         <thead>
@@ -299,21 +340,28 @@ function verVistaPrevia() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         doc.addImage('logo.png', 'PNG', 14, 10, 35, 15);
-        doc.setFontSize(16);
-        doc.text(`Reporte Mensual - Periodo ${formatoMesLabel}`, 55, 20);
-        doc.setFontSize(11);
-        doc.text(`Consumo Mensual Consolidado: ${totalConsumo.toLocaleString()} kWh`, 55, 27);
+        doc.setFontSize(15);
+        doc.text(`Reporte Mensual - Periodo ${formatoMesLabel}`, 55, 18);
+        doc.setFontSize(10);
+        doc.text(`Consumo Consolidado${subTituloFiltro}: ${totalConsumo.toLocaleString()} kWh`, 55, 25);
         doc.autoTable({ html: '#tabla-exportar', startY: 35, theme: 'striped', headStyles: { fillColor: [44, 62, 80] } });
-        doc.save(`Reporte_Mensual_${formatoMesLabel}.pdf`);
+        doc.save(`Reporte_Mensual_${formatoMesLabel}${soloMunicipales ? '_Municipal':''}.pdf`);
     };
 }
 
 // REPORTE HISTÓRICO GLOBAL MATRICIAL (BOTÓN VERDE)
 function verVistaPreviaGeneral() {
+    const soloMunicipales = document.getElementById('chk-reporte-municipal').checked;
+    
+    let lecturasAProcesar = todasLasLecturas;
+    if (soloMunicipales) {
+        lecturasAProcesar = todasLasLecturas.filter(r => String(r["Dep-Munic"]).toUpperCase() === "SI");
+    }
+
     const mapaMesesExistentes = {};
     let totalGlobalConsumo = 0;
 
-    todasLasLecturas.forEach(r => {
+    lecturasAProcesar.forEach(r => {
         const keyAnio = buscarClaveAnio(r);
         const mLabel = formatearPeriodoISO(r["Liq-Cuota"], r[keyAnio]);
         mapaMesesExistentes[mLabel] = { cuota: r["Liq-Cuota"], anio: r[keyAnio] };
@@ -328,7 +376,7 @@ function verVistaPreviaGeneral() {
 
     const matrizMedidores = {};
 
-    todasLasLecturas.forEach(r => {
+    lecturasAProcesar.forEach(r => {
         const idPadron = String(r.Padron).trim();
         const keyAnio = buscarClaveAnio(r);
         const mLabel = formatearPeriodoISO(r["Liq-Cuota"], r[keyAnio]);
@@ -354,8 +402,9 @@ function verVistaPreviaGeneral() {
 
     const medidoresLista = Object.values(matrizMedidores);
 
-    document.getElementById('preview-titulo').innerText = `TOTAL HISTÓRICO GLOBAL: ${totalGlobalConsumo.toLocaleString()} kWh`;
-    document.getElementById('resumen-texto').innerText = `Matriz Comparativa: Cada fila representa un medidor único con sus consumos mensuales distribuidos en columnas y la sumatoria final.`;
+    const tagTitulo = soloMunicipales ? "MUNICIPAL GLOBAL: " : "HISTÓRICO GLOBAL: ";
+    document.getElementById('preview-titulo').innerText = `TOTAL ${tagTitulo}${totalGlobalConsumo.toLocaleString()} kWh`;
+    document.getElementById('resumen-texto').innerText = `Matriz Comparativa${soloMunicipales ? ' exclusiva de Dependencias Municipales' : ''}: Valores mensuales organizados en columnas con sumatoria transversal.`;
 
     let htmlTabla = `<table class="tabla-preview" id="tabla-exportar">
         <thead>
@@ -409,9 +458,9 @@ function verVistaPreviaGeneral() {
         
         doc.addImage('logo.png', 'PNG', 14, 10, 35, 15);
         doc.setFontSize(15);
-        doc.text(`TOTAL HISTÓRICO GLOBAL: ${totalGlobalConsumo.toLocaleString()} kWh`, 55, 19);
+        doc.text(`TOTAL ${tagTitulo}${totalGlobalConsumo.toLocaleString()} kWh`, 55, 19);
         doc.setFontSize(10);
-        doc.text(`Matriz Transversal de Consumos Mensuales por Cuenta Activa`, 55, 25);
+        doc.text(`Matriz Transversal de Consumos Mensuales - Auditoría Interna`, 55, 25);
         
         doc.autoTable({ 
             html: '#tabla-exportar', 
@@ -420,7 +469,7 @@ function verVistaPreviaGeneral() {
             headStyles: { fillColor: [44, 62, 80] },
             styles: { fontSize: 8, cellPadding: 2 }
         });
-        doc.save(`Matriz_Historica_Global.pdf`);
+        doc.save(`Matriz_Historica_${soloMunicipales ? 'Municipal':'Global'}.pdf`);
     };
 }
 

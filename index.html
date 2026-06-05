@@ -27,11 +27,19 @@
         .resultado-item { padding: 10px 15px; cursor: pointer; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
         .resultado-item:hover { background-color: #f8f9fa; }
 
+        /* Botón de Filtro Rápido Municipal (Arriba al centro) */
+        #btn-filtro-municipal { position: absolute; top: 20px; left: 380px; z-index: 1000; padding: 12px 20px; background: white; color: #2c3e50; border: none; border-radius: 25px; font-weight: bold; font-size: 13px; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: all 0.3s ease; display: flex; align-items: center; gap: 8px; }
+        #btn-filtro-municipal.activo { background: #16a085; color: white; }
+
         /* Panel de Control de Meses (Inferior Izquierdo) */
-        #panel-controles { position: absolute; bottom: 30px; left: 20px; z-index: 1000; background: white; padding: 15px; border-radius: 12px; width: 240px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); box-sizing: border-box; }
+        #panel-controles { position: absolute; bottom: 30px; left: 20px; z-index: 1000; background: white; padding: 15px; border-radius: 12px; width: 250px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); box-sizing: border-box; }
         .btn-accion { width: 100%; padding: 10px; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 8px; font-size: 12px; transition: background 0.2s; }
         .btn-accion:hover { filter: brightness(0.9); }
         
+        /* Checkbox de reportes */
+        .contenedor-checkbox { display: flex; align-items: center; gap: 8px; margin: 10px 0 5px 0; font-size: 11.5px; font-weight: bold; color: #34495e; cursor: pointer; }
+        .contenedor-checkbox input { cursor: pointer; width: 15px; height: 15px; }
+
         /* Modal de Reportes */
         #modal-reporte { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(3px); }
         .modal-content { background-color: white; margin: 2% auto; padding: 25px; border-radius: 15px; width: 95%; max-width: 1200px; height: 85vh; display: flex; flex-direction: column; box-sizing: border-box; }
@@ -51,7 +59,6 @@
         .btn-cerrar:hover { color: #333; }
         #titulo-medidor { font-size: 1.2rem; margin: 0 0 5px 0; color: #2c3e50; }
         
-        /* Corrección de la advertencia CSS usando Flexbox Moderno */
         .contenedor-alineado { display: flex; justify-content: space-between; align-items: center; line-height: 1.4; margin-top: 5px; }
         #info-domicilio { font-size: 0.85rem; color: #7f8c8d; max-width: 75%; }
         #indicador-tendencia { font-size: 0.9rem; }
@@ -74,13 +81,21 @@
         <div id="resultados-busqueda"></div>
     </div>
 
+    <button id="btn-filtro-municipal" onclick="toggleFiltroMunicipal()">
+        <span>🏛️</span> Medidores Municipales
+    </button>
+
     <div id="map"></div>
 
     <div id="panel-controles">
         <label style="font-size: 11px; font-weight: bold; color: #7f8c8d; display:block; margin-bottom:4px;">REPORTES DISPONIBLES:</label>
         <select id="select-periodo" style="width:100%; padding:8px; border-radius: 5px; border: 1px solid #ccc; outline: none; font-weight:bold; color:#2c3e50;" onchange="actualizarPuntosPorMes()"></select>
         
-        <button class="btn-accion" style="background: #2c3e50; margin-top:12px;" onclick="verVistaPrevia()">📊 Reporte del Mes</button>
+        <label class="contenedor-checkbox">
+            <input type="checkbox" id="chk-reporte-municipal"> Solo dependencias municipales
+        </label>
+
+        <button class="btn-accion" style="background: #2c3e50; margin-top:4px;" onclick="verVistaPrevia()">📊 Reporte del Mes</button>
         <button class="btn-accion" style="background: #16a085;" onclick="verVistaPreviaGeneral()">📅 Reporte Histórico Total</button>
     </div>
 
