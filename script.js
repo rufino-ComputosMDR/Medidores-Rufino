@@ -1,8 +1,15 @@
-const map = L.map('map').setView([-34.262, -62.710], 15); 
+const map = L.map('map', {
+    zoomControl: window.innerWidth > 767 // Mueve u oculta controles nativos en pantallas móviles si estorban
+}).setView([-34.262, -62.710], 15); 
 
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
     attribution: '©OpenStreetMap'
 }).addTo(map);
+
+// Mover el control de zoom si es movil para que no colisione con el buscador
+if(window.innerWidth <= 767) {
+    L.control.zoom({ position: 'topright' }).addTo(map);
+}
 
 let miGrafico; 
 let datosMedidores = [];      
@@ -44,7 +51,7 @@ fetch('lecturas.geojson')
             }
         });
 
-        // INYECCIÓN DE DEFENSA: Forzar que cada registro de lectura sepa si es municipal
+        // INYECCIÓN: Forzar que cada registro de lectura sepa si es municipal
         todasLasLecturas.forEach(r => {
             const padronNormalizado = String(r.Padron).trim();
             if (mapaMunicipalesBase[padronNormalizado]) {
@@ -173,6 +180,7 @@ function configurarBuscador() {
                     mostrarFicha(f.properties);
                     resultados.style.display = 'none';
                     input.value = direccion;
+                    input.blur(); // Cierra el teclado en celulares al seleccionar
                 };
                 resultados.appendChild(div);
             });
@@ -181,7 +189,7 @@ function configurarBuscador() {
     });
 }
 
-// 4. MOSTRAR FICHA LATERAL
+// 4. MOSTRAR FICHA LATERAL / BOTTOM SHEET
 function mostrarFicha(prop) {
     document.getElementById('ficha-medidor').style.display = 'block';
     const idCuenta = String(prop.Cuenta).trim();
@@ -204,7 +212,7 @@ function mostrarFicha(prop) {
         document.getElementById('lbl-medidor').innerText = 'Sin registro';
         document.getElementById('lbl-lectura').innerText = '-';
         document.getElementById('lbl-consumo').innerText = '-';
-        document.getElementById('lbl-periodo-nombre').innerText = 'No liquidado este mes';
+        document.getElementById('lbl-periodo-nombre').innerText = 'No liquidado';
     }
 
     if (registrosIndiv.length === 0) {
@@ -272,7 +280,6 @@ function dibujarGrafico(labels, datos) {
 // 5. GENERACIÓN DE REPORTES EN MODAL Y PDF
 // ==========================================
 
-// REPORTE MENSUAL (BOTÓN AZUL)
 function verVistaPrevia() {
     const periodo = document.getElementById('select-periodo').value;
     if (!periodo) return;
@@ -294,17 +301,17 @@ function verVistaPrevia() {
         }
     });
 
-    const subTituloFiltro = soloMunicipales ? " (DEPENDENCIAS MUNICIPALES)" : "";
-    document.getElementById('preview-titulo').innerText = `Reporte Mes: Período ${formatoMesLabel}${subTituloFiltro}`;
-    document.getElementById('resumen-texto').innerText = `Total de medidores liquidados en este rango: ${filtrados.length}`;
+    const subTituloFiltro = soloMunicipales ? " (MUNICIPALES)" : "";
+    document.getElementById('preview-titulo').innerText = `Período ${formatoMesLabel}${subTituloFiltro}`;
+    document.getElementById('resumen-texto').innerText = `Total de medidores: ${filtrados.length}`;
 
     let htmlTabla = `<table class="tabla-preview" id="tabla-exportar">
         <thead>
             <tr>
-                <th>Padrón (Cuenta)</th>
+                <th>Padrón</th>
                 <th>Ubicación / Domicilio</th>
                 <th>Nro. Medidor</th>
-                <th>Fecha Lectura</th>
+                <th>Fecha</th>
                 <th>Lectura</th>
                 <th style="text-align:right;">Consumo (kWh)</th>
             </tr>
@@ -329,7 +336,7 @@ function verVistaPrevia() {
     });
 
     htmlTabla += `<tr class="total-row">
-        <td colspan="5">TOTAL CONSUMO ENERGÉTICO DEL MES</td>
+        <td colspan="5">TOTAL CONSUMO ENERGÉTICO</td>
         <td style="text-align:right;">${totalConsumo.toLocaleString()} kWh</td>
     </tr></tbody></table>`;
 
@@ -339,17 +346,15 @@ function verVistaPrevia() {
     document.getElementById('btn-descarga-final').onclick = () => {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-        doc.addImage('logo.png', 'PNG', 14, 10, 35, 15);
         doc.setFontSize(15);
-        doc.text(`Reporte Mensual - Periodo ${formatoMesLabel}`, 55, 18);
+        doc.text(`Reporte Mensual - Periodo ${formatoMesLabel}`, 14, 20);
         doc.setFontSize(10);
-        doc.text(`Consumo Consolidado${subTituloFiltro}: ${totalConsumo.toLocaleString()} kWh`, 55, 25);
+        doc.text(`Consumo Consolidado${subTituloFiltro}: ${totalConsumo.toLocaleString()} kWh`, 14, 27);
         doc.autoTable({ html: '#tabla-exportar', startY: 35, theme: 'striped', headStyles: { fillColor: [44, 62, 80] } });
-        doc.save(`Reporte_Mensual_${formatoMesLabel}${soloMunicipales ? '_Municipal':''}.pdf`);
+        doc.save(`Reporte_Mensual_${formatoMesLabel}.pdf`);
     };
 }
 
-// REPORTE HISTÓRICO GLOBAL MATRICIAL (BOTÓN VERDE)
 function verVistaPreviaGeneral() {
     const soloMunicipales = document.getElementById('chk-reporte-municipal').checked;
     
@@ -402,21 +407,21 @@ function verVistaPreviaGeneral() {
 
     const medidoresLista = Object.values(matrizMedidores);
 
-    const tagTitulo = soloMunicipales ? "MUNICIPAL GLOBAL: " : "HISTÓRICO GLOBAL: ";
+    const tagTitulo = soloMunicipales ? "MUNICIPAL: " : "GLOBAL: ";
     document.getElementById('preview-titulo').innerText = `TOTAL ${tagTitulo}${totalGlobalConsumo.toLocaleString()} kWh`;
-    document.getElementById('resumen-texto').innerText = `Matriz Comparativa${soloMunicipales ? ' exclusiva de Dependencias Municipales' : ''}: Valores mensuales organizados en columnas con sumatoria transversal.`;
+    document.getElementById('resumen-texto').innerText = `Matriz Mensual por Cuenta. Deslice horizontalmente para ver todos los meses.`;
 
     let htmlTabla = `<table class="tabla-preview" id="tabla-exportar">
         <thead>
             <tr>
-                <th>Padrón (Cuenta)</th>
-                <th>Ubicación / Domicilio</th>
-                <th>Nro. Medidor</th>`;
+                <th>Padrón</th>
+                <th>Domicilio</th>
+                <th>Medidor</th>`;
     
     listaMesesColumnas.forEach(mesCol => {
         htmlTabla += `<th style="text-align:right;">${mesCol}</th>`;
     });
-    htmlTabla += `<th style="text-align:right; background-color:#16a085; color:white;">TOTAL SUMA</th></tr></thead><tbody>`;
+    htmlTabla += `<th style="text-align:right; background-color:#16a085; color:white;">TOTAL</th></tr></thead><tbody>`;
 
     const totalesPorMesCol = {};
     listaMesesColumnas.forEach(m => totalesPorMesCol[m] = 0);
@@ -437,17 +442,17 @@ function verVistaPreviaGeneral() {
             htmlTabla += `<td style="text-align:right;">${consumoCelda > 0 ? consumoCelda.toLocaleString() : '-'}</td>`;
         });
 
-        htmlTabla += `<td class="col-total">${sumaFilaAcumulada.toLocaleString()} kWh</td></tr>`;
+        htmlTabla += `<td class="col-total">${sumaFilaAcumulada.toLocaleString()}</td></tr>`;
     });
 
     htmlTabla += `<tr class="total-row">
-        <td colspan="3" style="text-align:right;">TOTALES LIQUIDADOS:</td>`;
+        <td colspan="3" style="text-align:right;">TOTALES:</td>`;
     
     listaMesesColumnas.forEach(mesCol => {
         htmlTabla += `<td style="text-align:right;">${totalesPorMesCol[mesCol].toLocaleString()}</td>`;
     });
     
-    htmlTabla += `<td style="text-align:right; background-color:#2c3e50; color:white;">${totalGlobalConsumo.toLocaleString()} kWh</td></tr></tbody></table>`;
+    htmlTabla += `<td style="text-align:right; background-color:#2c3e50; color:white;">${totalGlobalConsumo.toLocaleString()}</td></tr></tbody></table>`;
 
     document.getElementById('preview-tabla-container').innerHTML = htmlTabla;
     document.getElementById('modal-reporte').style.display = 'block';
@@ -455,21 +460,15 @@ function verVistaPreviaGeneral() {
     document.getElementById('btn-descarga-final').onclick = () => {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF({ orientation: 'landscape', format: 'a4' });
-        
-        doc.addImage('logo.png', 'PNG', 14, 10, 35, 15);
-        doc.setFontSize(15);
-        doc.text(`TOTAL ${tagTitulo}${totalGlobalConsumo.toLocaleString()} kWh`, 55, 19);
-        doc.setFontSize(10);
-        doc.text(`Matriz Transversal de Consumos Mensuales - Auditoría Interna`, 55, 25);
-        
+        doc.setFontSize(14);
+        doc.text(`TOTAL ${tagTitulo}${totalGlobalConsumo.toLocaleString()} kWh`, 14, 15);
         doc.autoTable({ 
             html: '#tabla-exportar', 
-            startY: 32, 
+            startY: 22, 
             theme: 'grid', 
-            headStyles: { fillColor: [44, 62, 80] },
             styles: { fontSize: 8, cellPadding: 2 }
         });
-        doc.save(`Matriz_Historica_${soloMunicipales ? 'Municipal':'Global'}.pdf`);
+        doc.save(`Matriz_Historica.pdf`);
     };
 }
 

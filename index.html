@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Monitor Eléctrico Rufino</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -21,18 +21,18 @@
         #logo-pagina { height: 45px; width: auto; object-fit: contain; }
 
         /* Buscador Superior Izquierdo */
-        #buscador-container { position: absolute; top: 20px; left: 50px; z-index: 1000; width: 300px; }
+        #buscador-container { position: absolute; top: 20px; left: 20px; z-index: 1000; width: 300px; }
         #input-busqueda { width: 100%; padding: 12px 20px; border-radius: 25px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.2); outline: none; box-sizing: border-box; }
         #resultados-busqueda { background: white; border-radius: 10px; margin-top: 8px; max-height: 200px; overflow-y: auto; display: none; box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 1001; }
         .resultado-item { padding: 10px 15px; cursor: pointer; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
         .resultado-item:hover { background-color: #f8f9fa; }
 
-        /* Botón de Filtro Rápido Municipal (Arriba al centro) */
-        #btn-filtro-municipal { position: absolute; top: 20px; left: 380px; z-index: 1000; padding: 12px 20px; background: white; color: #2c3e50; border: none; border-radius: 25px; font-weight: bold; font-size: 13px; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: all 0.3s ease; display: flex; align-items: center; gap: 8px; }
+        /* Botón de Filtro Rápido Municipal */
+        #btn-filtro-municipal { position: absolute; top: 20px; left: 335px; z-index: 1000; padding: 12px 20px; background: white; color: #2c3e50; border: none; border-radius: 25px; font-weight: bold; font-size: 13px; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: all 0.3s ease; display: flex; align-items: center; gap: 8px; box-sizing: border-box; }
         #btn-filtro-municipal.activo { background: #16a085; color: white; }
 
         /* Panel de Control de Meses (Inferior Izquierdo) */
-        #panel-controles { position: absolute; bottom: 30px; left: 20px; z-index: 1000; background: white; padding: 15px; border-radius: 12px; width: 250px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); box-sizing: border-box; }
+        #panel-controles { position: absolute; bottom: 30px; left: 20px; z-index: 1000; background: white; padding: 15px; border-radius: 12px; width: 260px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); box-sizing: border-box; }
         .btn-accion { width: 100%; padding: 10px; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 8px; font-size: 12px; transition: background 0.2s; }
         .btn-accion:hover { filter: brightness(0.9); }
         
@@ -53,7 +53,7 @@
         .col-total { font-weight: bold; background-color: #f0fdf4 !important; color: #166534; text-align: right; }
         .total-row { background: #e2e8f0 !important; font-weight: bold; font-size: 12px; color: #1e293b; }
 
-        /* Ficha Lateral Derecha */
+        /* Ficha Lateral Derecha (Escritorio) */
         #ficha-medidor { position: absolute; top: 90px; right: 20px; width: 320px; background: white; z-index: 1000; border-radius: 15px; padding: 20px; display: none; box-shadow: 0 8px 30px rgba(0,0,0,0.2); box-sizing: border-box; }
         .btn-cerrar { float: right; border: none; background: none; font-size: 24px; cursor: pointer; color: #999; line-height: 20px; }
         .btn-cerrar:hover { color: #333; }
@@ -68,6 +68,35 @@
         #datos-mes-activo div:last-child { margin-bottom: 0; }
         
         #grafico-container { height: 180px; margin-top: 15px; position: relative; }
+
+        /* =======================================================
+           REGLAS CSS RESPONSIVAS PARA PANTALLAS DE CELULAR VERTICAL
+           ======================================================= */
+        @media (max-width: 767px) {
+            /* 1. Reacomodar cabecera (Buscador y Botón Municipal) */
+            #buscador-container { width: calc(100% - 40px); top: 15px; left: 20px; }
+            #btn-filtro-municipal { top: 75px; left: 20px; width: calc(100% - 40px); justify-content: center; padding: 10px; font-size: 12px; }
+            #logo-pagina-container { display: none; } /* Ocultar logo en móvil para liberar espacio visual */
+
+            /* 2. Adaptar Controles Inferiores */
+            #panel-controles { bottom: 15px; left: 10px; width: calc(100% - 20px); padding: 12px; border-radius: 12px; box-shadow: 0 -4px 20px rgba(0,0,0,0.15); }
+            
+            /* 3. Transformar Ficha en Bottom Sheet Móvil */
+            #ficha-medidor { top: auto; bottom: 0; right: 0; left: 0; width: 100%; border-radius: 20px 20px 0 0; padding: 20px; max-height: 60vh; overflow-y: auto; box-shadow: 0 -8px 30px rgba(0,0,0,0.25); animation: subirPanel 0.3s ease-out; }
+            #grafico-container { height: 140px; }
+
+            /* 4. Adaptar Modales y Contenedor de Tablas de Reporte */
+            .modal-content { width: 98%; height: 90vh; margin: 5vh auto; padding: 15px; }
+            #preview-titulo { font-size: 16px; }
+            #resumen-texto { font-size: 11px; }
+            .tabla-preview { font-size: 10px; }
+            .tabla-preview th, .tabla-preview td { padding: 6px 4px; }
+        }
+
+        @keyframes subirPanel {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
     </style>
 </head>
 <body>
@@ -77,7 +106,7 @@
     </div>
 
     <div id="buscador-container">
-        <input type="text" id="input-busqueda" placeholder="🔍 Buscar domicilio, ubicación o cuenta...">
+        <input type="text" id="input-busqueda" placeholder="🔍 Buscar domicilio o cuenta...">
         <div id="resultados-busqueda"></div>
     </div>
 
@@ -88,23 +117,25 @@
     <div id="map"></div>
 
     <div id="panel-controles">
-        <label style="font-size: 11px; font-weight: bold; color: #7f8c8d; display:block; margin-bottom:4px;">REPORTES DISPONIBLES:</label>
+        <label style="font-size: 11px; font-weight: bold; color: #7f8c8d; display:block; margin-bottom:4px;">PERÍODO:</label>
         <select id="select-periodo" style="width:100%; padding:8px; border-radius: 5px; border: 1px solid #ccc; outline: none; font-weight:bold; color:#2c3e50;" onchange="actualizarPuntosPorMes()"></select>
         
         <label class="contenedor-checkbox">
             <input type="checkbox" id="chk-reporte-municipal"> Solo dependencias municipales
         </label>
 
-        <button class="btn-accion" style="background: #2c3e50; margin-top:4px;" onclick="verVistaPrevia()">📊 Reporte del Mes</button>
-        <button class="btn-accion" style="background: #16a085;" onclick="verVistaPreviaGeneral()">📅 Reporte Histórico Total</button>
+        <div style="display: flex; gap: 8px;">
+            <button class="btn-accion" style="background: #2c3e50; margin-top:4px;" onclick="verVistaPrevia()">📊 Mes</button>
+            <button class="btn-accion" style="background: #16a085; margin-top:4px;" onclick="verVistaPreviaGeneral()">📅 Histórico</button>
+        </div>
     </div>
 
     <div id="modal-reporte">
         <div class="modal-content">
             <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                <div>
+                <div style="max-width: 85%;">
                     <h2 id="preview-titulo" style="margin:0; color:#2c3e50;">Vista Previa de Reporte</h2>
-                    <p id="resumen-texto" style="margin: 8px 0 0 0; color: #666; font-size: 13px;"></p>
+                    <p id="resumen-texto" style="margin: 4px 0 0 0; color: #666; font-size: 12px;"></p>
                 </div>
                 <button class="btn-cerrar" onclick="cerrarModal()">×</button>
             </div>
@@ -125,9 +156,9 @@
         
         <div id="datos-mes-activo">
             <div><strong>Medidor:</strong> <span id="lbl-medidor">-</span></div>
-            <div><strong>Lectura del Mes:</strong> <span id="lbl-lectura">-</span></div>
-            <div><strong>Consumo del Mes:</strong> <span id="lbl-consumo" style="font-weight:bold; color:#2980b9;">-</span></div>
-            <div style="font-size:11px; color:#7f8c8d; margin-top:4px;">Período consultado: <span id="lbl-periodo-nombre">-</span></div>
+            <div><strong>Lectura:</strong> <span id="lbl-lectura">-</span></div>
+            <div><strong>Consumo:</strong> <span id="lbl-consumo" style="font-weight:bold; color:#2980b9;">-</span></div>
+            <div style="font-size:11px; color:#7f8c8d; margin-top:4px;">Período: <span id="lbl-periodo-nombre">-</span></div>
         </div>
 
         <div id="grafico-container">
