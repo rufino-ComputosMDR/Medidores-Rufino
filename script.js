@@ -103,7 +103,7 @@ function toggleFiltroMunicipal() {
     actualizarPuntosPorMes();
 }
 
-// 2. REFRESCAR PUNTOS EN EL MAPA (DIFERENCIACIÓN POR ICONO TEMÁTICO SVG)
+// 2. REFRESCAR PUNTOS EN EL MAPA (REMPLAZA MUNICIPIOS POR EL ESCUDO LOGO.PNG)
 function actualizarPuntosPorMes() {
     const periodoSeleccionado = document.getElementById('select-periodo').value;
     if (!periodoSeleccionado) return;
@@ -139,28 +139,38 @@ function actualizarPuntosPorMes() {
         const esTop10 = consumoMes >= limiteTop10Mes && consumoMes > 0;
         const esMunicipal = String(feature.properties["Dep-Munic"]).toUpperCase() === "SI";
 
-        // Paleta de colores idéntica a los círculos
-        const colorFinal = esTop10 ? "#e67e22" : "#5dade2"; 
         let marcador;
 
         if (esMunicipal) {
-            // El tamaño del icono cambia proporcionalmente si es de alto consumo (Top 10)
-            const dimensionIcono = esTop10 ? 26 : 20;
+            // Definimos un tamaño chico para el escudo institucional
+            const tamanoEscudo = esTop10 ? 24 : 18;
 
-            // Inyección de un vector SVG puro que representa un edificio ("🏛️") pintado dinámicamente con colorFinal
-            const svgIconoMunicipal = L.divIcon({
-                html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512" style="width:${dimensionIcono}px; height:${dimensionIcono}px;">
-                        <path fill="${colorFinal}" stroke="#2c3e50" stroke-width="25" d="M543.9 96c-5.7 0-10.9-3.4-13.3-8.6L496 11.2C491.5 1.7 481.8-2.9 471.7 1.4L288 80.5 104.3 1.4C94.2-2.9 84.5 1.7 80 11.2L45.4 87.4C43 92.6 37.8 96 32.1 96C14.4 96 0 110.4 0 128s14.4 32 32 32h512c17.6 0 32-14.4 32-32s-14.4-32-32-32zM80 432c0 17.6 14.4 32 32 32h352c17.6 0 32-14.4 32-32V192H80v240zm64-192c0-8.8 7.2-16 16-16s16 7.2 16 16v144c0 8.8-7.2 16-16 16s-16-7.2-16-16V240zm112 0c0-8.8 7.2-16 16-16s16 7.2 16 16v144c0 8.8-7.2 16-16 16s-16-7.2-16-16V240zm112 0c0-8.8 7.2-16 16-16s16 7.2 16 16v144c0 8.8-7.2 16-16 16s-16-7.2-16-16V240zM560 480H16c-8.8 0-16 7.2-16 16s7.2 16 16 16h544c8.8 0 16-7.2 16-16s-7.2-16-16-16z"/>
-                       </svg>`,
-                className: 'marcador-municipal-svg',
-                iconSize: [dimensionIcono, dimensionIcono],
-                iconAnchor: [dimensionIcono / 2, dimensionIcono / 2] // Centrado exacto sobre la coordenada
+            // Creamos el icono de Leaflet apuntando directamente a tu archivo 'logo.png'
+            const iconoEscudoMunicipal = L.icon({
+                iconUrl: 'logo.png',
+                iconSize: [tamanoEscudo, tamanoEscudo],
+                iconAnchor: [tamanoEscudo / 2, tamanoEscudo / 2], // Anclaje centrado sobre el punto geográfico
+                className: esTop10 ? 'escudo-top10' : 'escudo-normal' // Opcional por si deseas estilar con CSS externo
             });
 
-            marcador = L.marker(latlng, { icon: svgIconoMunicipal });
+            // Si es Top 10 de consumos, dibujamos un círculo naranja muy tenue de fondo para alertar visualmente
+            if (esTop10) {
+                const fondoAlerta = L.circleMarker(latlng, {
+                    radius: 15,
+                    fillColor: "#e67e22",
+                    color: "transparent",
+                    fillOpacity: 0.4,
+                    interactive: false
+                });
+                fondoAlerta.addTo(capaPuntosMapa);
+            }
+
+            marcador = L.marker(latlng, { icon: iconoEscudoMunicipal });
         } else {
-            // Medidores normales continúan siendo círculos nativos ligeros y limpios
+            // Medidores comunes continúan mostrándose como círculos dinámicos limpios (Azul o Naranja)
             const radioCentro = esTop10 ? 9 : 6;
+            const colorFinal = esTop10 ? "#e67e22" : "#5dade2";
+
             marcador = L.circleMarker(latlng, {
                 radius: radioCentro,
                 fillColor: colorFinal,
