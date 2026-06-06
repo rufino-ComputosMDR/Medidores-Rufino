@@ -30,7 +30,7 @@ const formatearPeriodoISO = (cuota, anio) => {
     return `${anio}-${mesStr}`;
 };
 
-// 1. CARGA INICIAL COMPLETA CON CRUCE DE ATRIBUTOS INDEXADO
+// 1. CARGA INICIAL COMPLETA
 fetch('lecturas.geojson')
     .then(res => res.json())
     .then(data => {
@@ -103,7 +103,7 @@ function toggleFiltroMunicipal() {
     actualizarPuntosPorMes();
 }
 
-// 2. REFRESCAR PUNTOS EN EL MAPA (REMPLAZA MUNICIPIOS POR EL ESCUDO LOGO.PNG)
+// 2. REFRESCAR PUNTOS EN EL MAPA (CON ESCUDOS Y SOMBREADO MÁS CHICO)
 function actualizarPuntosPorMes() {
     const periodoSeleccionado = document.getElementById('select-periodo').value;
     if (!periodoSeleccionado) return;
@@ -139,38 +139,38 @@ function actualizarPuntosPorMes() {
         const esTop10 = consumoMes >= limiteTop10Mes && consumoMes > 0;
         const esMunicipal = String(feature.properties["Dep-Munic"]).toUpperCase() === "SI";
 
+        const colorFinal = esTop10 ? "#e67e22" : "#5dade2"; 
         let marcador;
 
         if (esMunicipal) {
-            // Definimos un tamaño chico para el escudo institucional
-            const tamanoEscudo = esTop10 ? 24 : 18;
+            // Tamaños reducidos (Antes eran 18 y 22)
+            const tamanoEscudo = esTop10 ? 18 : 14;
+            // Sombreado perimetral más discreto (Antes era de 6px y 4px)
+            const difuminadoSombra = esTop10 ? '4px' : '3px';
 
-            // Creamos el icono de Leaflet apuntando directamente a tu archivo 'logo.png'
-            const iconoEscudoMunicipal = L.icon({
-                iconUrl: 'logo.png',
+            const HTMLEscudoEsfumado = L.divIcon({
+                html: `<div style="
+                            width: ${tamanoEscudo}px; 
+                            height: ${tamanoEscudo}px; 
+                            border-radius: 50%; 
+                            border: 1.5px solid ${colorFinal}; 
+                            box-shadow: 0 0 ${difuminadoSombra} ${colorFinal}; 
+                            background-color: white; 
+                            overflow: hidden; 
+                            display: flex; 
+                            align-items: center; 
+                            justify-content: center;">
+                        <img src="logo.png" style="width: 85%; height: 85%; object-fit: contain;" />
+                       </div>`,
+                className: 'marcador-escudo-esfumado',
                 iconSize: [tamanoEscudo, tamanoEscudo],
-                iconAnchor: [tamanoEscudo / 2, tamanoEscudo / 2], // Anclaje centrado sobre el punto geográfico
-                className: esTop10 ? 'escudo-top10' : 'escudo-normal' // Opcional por si deseas estilar con CSS externo
+                iconAnchor: [tamanoEscudo / 2, tamanoEscudo / 2]
             });
 
-            // Si es Top 10 de consumos, dibujamos un círculo naranja muy tenue de fondo para alertar visualmente
-            if (esTop10) {
-                const fondoAlerta = L.circleMarker(latlng, {
-                    radius: 15,
-                    fillColor: "#e67e22",
-                    color: "transparent",
-                    fillOpacity: 0.4,
-                    interactive: false
-                });
-                fondoAlerta.addTo(capaPuntosMapa);
-            }
-
-            marcador = L.marker(latlng, { icon: iconoEscudoMunicipal });
+            marcador = L.marker(latlng, { icon: HTMLEscudoEsfumado });
         } else {
-            // Medidores comunes continúan mostrándose como círculos dinámicos limpios (Azul o Naranja)
+            // Medidores normales continúan idénticos
             const radioCentro = esTop10 ? 9 : 6;
-            const colorFinal = esTop10 ? "#e67e22" : "#5dade2";
-
             marcador = L.circleMarker(latlng, {
                 radius: radioCentro,
                 fillColor: colorFinal,
