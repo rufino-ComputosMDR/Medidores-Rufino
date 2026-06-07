@@ -103,7 +103,7 @@ function toggleFiltroMunicipal() {
     actualizarPuntosPorMes();
 }
 
-// 2. REFRESCAR PUNTOS EN EL MAPA (CON ESCUDOS Y SOMBREADO MÁS CHICO)
+// 2. REFRESCAR PUNTOS EN EL MAPA (ESCUDO MÁS GRANDE CON SOMBREADO AZUL)
 function actualizarPuntosPorMes() {
     const periodoSeleccionado = document.getElementById('select-periodo').value;
     if (!periodoSeleccionado) return;
@@ -139,28 +139,24 @@ function actualizarPuntosPorMes() {
         const esTop10 = consumoMes >= limiteTop10Mes && consumoMes > 0;
         const esMunicipal = String(feature.properties["Dep-Munic"]).toUpperCase() === "SI";
 
-        const colorFinal = esTop10 ? "#e67e22" : "#5dade2"; 
-        let marcador;
-
         if (esMunicipal) {
-            // Tamaños reducidos (Antes eran 18 y 22)
-            const tamanoEscudo = esTop10 ? 18 : 14;
-            // Sombreado perimetral más discreto (Antes era de 6px y 4px)
-            const difuminadoSombra = esTop10 ? '4px' : '3px';
+            // Aumentamos los tamaños del escudo
+            const tamanoEscudo = esTop10 ? 24 : 20;
+            // El color del sombreado es siempre el azul de los medidores normales (#5dade2)
+            const colorAzulMedidor = "#5dade2";
 
             const HTMLEscudoEsfumado = L.divIcon({
                 html: `<div style="
                             width: ${tamanoEscudo}px; 
                             height: ${tamanoEscudo}px; 
                             border-radius: 50%; 
-                            border: 1.5px solid ${colorFinal}; 
-                            box-shadow: 0 0 ${difuminadoSombra} ${colorFinal}; 
+                            box-shadow: 0 0 8px 2px ${colorAzulMedidor}; 
                             background-color: white; 
                             overflow: hidden; 
                             display: flex; 
                             align-items: center; 
                             justify-content: center;">
-                        <img src="logo.png" style="width: 85%; height: 85%; object-fit: contain;" />
+                        <img src="logo.png" style="width: 90%; height: 90%; object-fit: contain;" />
                        </div>`,
                 className: 'marcador-escudo-esfumado',
                 iconSize: [tamanoEscudo, tamanoEscudo],
@@ -169,8 +165,9 @@ function actualizarPuntosPorMes() {
 
             marcador = L.marker(latlng, { icon: HTMLEscudoEsfumado });
         } else {
-            // Medidores normales continúan idénticos
+            // Medidores normales (Círculos azul o naranja según consumo)
             const radioCentro = esTop10 ? 9 : 6;
+            const colorFinal = esTop10 ? "#e67e22" : "#5dade2"; 
             marcador = L.circleMarker(latlng, {
                 radius: radioCentro,
                 fillColor: colorFinal,
