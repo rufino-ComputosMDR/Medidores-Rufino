@@ -30,7 +30,9 @@ const formatearPeriodoISO = (cuota, anio) => {
     return `${anio}-${mesStr}`;
 };
 
-// 1. CARGA INICIAL COMPLETA
+// ==========================================
+// 1. CARGA INICIAL COMPLETA Y CRUCE DE DATOS
+// ==========================================
 fetch('lecturas.geojson')
     .then(res => res.json())
     .then(data => {
@@ -103,7 +105,9 @@ function toggleFiltroMunicipal() {
     actualizarPuntosPorMes();
 }
 
-// 2. REFRESCAR PUNTOS EN EL MAPA (ESCUDO MÁS GRANDE CON SOMBREADO AZUL)
+// ==========================================
+// 2. REFRESCAR PUNTOS (ESCUDOS CON RESPLANDOR)
+// ==========================================
 function actualizarPuntosPorMes() {
     const periodoSeleccionado = document.getElementById('select-periodo').value;
     if (!periodoSeleccionado) return;
@@ -139,11 +143,11 @@ function actualizarPuntosPorMes() {
         const esTop10 = consumoMes >= limiteTop10Mes && consumoMes > 0;
         const esMunicipal = String(feature.properties["Dep-Munic"]).toUpperCase() === "SI";
 
+        let marcador;
+
         if (esMunicipal) {
-            // Aumentamos los tamaños del escudo
             const tamanoEscudo = esTop10 ? 24 : 20;
-            // El color del sombreado es siempre el azul de los medidores normales (#5dade2)
-            const colorAzulMedidor = "#5dade2";
+            const colorAzulMedidor = "#5dade2"; // Resplandor unificado en azul base
 
             const HTMLEscudoEsfumado = L.divIcon({
                 html: `<div style="
@@ -165,7 +169,6 @@ function actualizarPuntosPorMes() {
 
             marcador = L.marker(latlng, { icon: HTMLEscudoEsfumado });
         } else {
-            // Medidores normales (Círculos azul o naranja según consumo)
             const radioCentro = esTop10 ? 9 : 6;
             const colorFinal = esTop10 ? "#e67e22" : "#5dade2"; 
             marcador = L.circleMarker(latlng, {
@@ -184,7 +187,9 @@ function actualizarPuntosPorMes() {
     capaPuntosMapa.addTo(map);
 }
 
+// ==========================================
 // 3. CONFIGURACIÓN DEL BUSCADOR
+// ==========================================
 function configurarBuscador() {
     const input = document.getElementById('input-busqueda');
     const resultados = document.getElementById('resultados-busqueda');
@@ -220,7 +225,9 @@ function configurarBuscador() {
     });
 }
 
-// 4. MOSTRAR FICHA LATERAL / BOTTOM SHEET MÓVIL
+// ==========================================
+// 4. FICHA LATERAL CON TRAZABILIDAD DE MEDIDOR
+// ==========================================
 function mostrarFicha(prop) {
     document.getElementById('ficha-medidor').style.display = 'block';
     const idCuenta = String(prop.Cuenta).trim();
@@ -271,7 +278,13 @@ function mostrarFicha(prop) {
         document.getElementById('indicador-tendencia').innerHTML = '';
     }
 
-    const etiquetas = registrosIndiv.map(r => `${r["Liq-Cuota"]}/${String(r[buscarClaveAnio(r)] || "").slice(-2)}`);
+    // Inyecta el número de medidor correspondiente a cada barra en el eje X
+    const etiquetas = registrosIndiv.map(r => {
+        const mesAnio = `${r["Liq-Cuota"]}/${String(r[buscarClaveAnio(r)] || "").slice(-2)}`;
+        const medidorCorto = r["Nro-Medidor"] ? `(M: ${r["Nro-Medidor"]})` : '(S/M)';
+        return `${mesAnio} ${medidorCorto}`;
+    });
+    
     const consumos = registrosIndiv.map(r => r.Consumo);
     dibujarGrafico(etiquetas, consumos);
 }
@@ -301,7 +314,7 @@ function dibujarGrafico(labels, datos) {
             plugins: { legend: { display: false }, datalabels: { display: true } },
             scales: {
                 y: { beginAtZero: true, suggestedMax: maxVal + (maxVal * 0.3), grid: { display: false }, ticks: { display: false } },
-                x: { grid: { display: false }, ticks: { font: { size: 9 } } }
+                x: { grid: { display: false }, ticks: { font: { size: 8 } } } // Bajado a 8 para que entre bien el texto
             }
         }
     });
@@ -310,7 +323,6 @@ function dibujarGrafico(labels, datos) {
 // ==========================================
 // 5. GENERACIÓN DE REPORTES EN MODAL Y PDF
 // ==========================================
-
 function verVistaPrevia() {
     const periodo = document.getElementById('select-periodo').value;
     if (!periodo) return;
