@@ -11,6 +11,10 @@ if(window.innerWidth <= 767) {
 }
 
 let miGrafico; 
+let miGraficoMaxi; 
+let ultimoLabels = []; 
+let ultimoDatos = [];  
+let cuentaSeleccionadaTexto = ""; 
 let datosMedidores = [];      
 let todasLasLecturas = [];    
 let capaPuntosMapa = null;    
@@ -106,7 +110,7 @@ function toggleFiltroMunicipal() {
 }
 
 // ==========================================
-// 2. REFRESCAR PUNTOS (ESCUDOS CON RESPLANDOR)
+// 2. REFRESCAR PUNTOS MAPA
 // ==========================================
 function actualizarPuntosPorMes() {
     const periodoSeleccionado = document.getElementById('select-periodo').value;
@@ -147,14 +151,14 @@ function actualizarPuntosPorMes() {
 
         if (esMunicipal) {
             const tamanoEscudo = esTop10 ? 24 : 20;
-            const colorAzulMedidor = "#5dade2"; // Resplandor unificado en azul base
+            const colorResplandor = esTop10 ? "#e67e22" : "#5dade2"; 
 
             const HTMLEscudoEsfumado = L.divIcon({
                 html: `<div style="
                             width: ${tamanoEscudo}px; 
                             height: ${tamanoEscudo}px; 
                             border-radius: 50%; 
-                            box-shadow: 0 0 8px 2px ${colorAzulMedidor}; 
+                            box-shadow: 0 0 10px 3px ${colorResplandor}; 
                             background-color: white; 
                             overflow: hidden; 
                             display: flex; 
@@ -223,14 +227,21 @@ function configurarBuscador() {
             resultados.style.display = 'block';
         } else { resultados.style.display = 'none'; }
     });
+
+    document.addEventListener('click', (e) => {
+        if (!input.contains(e.target) && !resultados.contains(e.target)) {
+            resultados.style.display = 'none';
+        }
+    });
 }
 
 // ==========================================
-// 4. FICHA LATERAL CON TRAZABILIDAD DE MEDIDOR
+// 4. FICHA DE MEDIDOR Y LOGICA DE DATOS
 // ==========================================
 function mostrarFicha(prop) {
     document.getElementById('ficha-medidor').style.display = 'block';
     const idCuenta = String(prop.Cuenta).trim();
+    cuentaSeleccionadaTexto = idCuenta + " - " + extraerDireccion(prop);
     
     document.getElementById('titulo-medidor').innerText = "Cuenta: " + idCuenta;
     document.getElementById('info-domicilio').innerText = extraerDireccion(prop);
@@ -240,6 +251,9 @@ function mostrarFicha(prop) {
 
     const registrosIndiv = todasLasLecturas.filter(p => String(p.Padron).trim() === idCuenta);
     const registroMesActivo = registrosIndiv.find(r => String(r["Liq-Cuota"]) === cuotaActiva && String(r[buscarClaveAnio(r)]) === anioActivo);
+
+    const bloqueObs = document.getElementById('bloque-observacion');
+    const lblObs = document.getElementById('lbl-observacion');
 
     if (registroMesActivo) {
         document.getElementById('lbl-medidor').innerText = registroMesActivo["Nro-Medidor"] || 'S/D';
@@ -253,9 +267,21 @@ function mostrarFicha(prop) {
         document.getElementById('lbl-periodo-nombre').innerText = 'No liquidado';
     }
 
+    const claveObservac = Object.keys(prop).find(k => k.toLowerCase().trim() === "observac");
+    const valorObservac = claveObservac ? prop[claveObservac] : null;
+
+    if (valorObservac && String(valorObservac).trim() !== "" && String(valorObservac).trim() !== "0" && String(valorObservac).toLowerCase().trim() !== "null") {
+        lblObs.innerText = String(valorObservac).trim();
+        bloqueObs.style.display = 'block'; 
+    } else {
+        bloqueObs.style.display = 'none';  
+    }
+
     if (registrosIndiv.length === 0) {
         if (miGrafico) miGrafico.destroy();
         document.getElementById('indicador-tendencia').innerHTML = '';
+        ultimoLabels = [];
+        ultimoDatos = [];
         return;
     }
 
@@ -264,29 +290,44 @@ function mostrarFicha(prop) {
         return a[keyA] - b[keyA] || a["Liq-Cuota"] - b["Liq-Cuota"];
     });
 
+    const el = document.getElementById('indicador-tendencia');
     if (registrosIndiv.length >= 2) {
-        const ultimo = registrosIndiv[registrosIndiv.length - 1].Consumo;
-        const anterior = registrosIndiv[registrosIndiv.length - 2].Consumo;
-        const diff = (((ultimo - anterior) / (anterior || 1)) * 100).toFixed(1);
-        const el = document.getElementById('indicador-tendencia');
-        if (ultimo >= anterior) {
-            el.innerHTML = `<span style="color:#e74c3c; font-weight:bold;">▲ +${diff}%</span>`;
+        const indexActivo = registrosIndiv.findIndex(r => String(r["Liq-Cuota"]) === cuotaActiva && String(r[buscarClaveAnio(r)]) === anioActivo);
+        
+        if (indexActivo > 0) {
+            const filaActiva = registrosIndiv[indexActivo];
+            const filaAnterior = registrosIndiv[indexActivo - 1];
+
+            const medidorActivoStr = String(filaActiva["Nro-Medidor"] || "").trim();
+            const medidorAnteriorStr = String(filaAnterior["Nro-Medidor"] || "").trim();
+
+            if (medidorActivoStr !== "" && medidorAnteriorStr !== "" && medidorActivoStr !== medidorAnteriorStr) {
+                el.innerHTML = `<span style="color:#2c3e50; background:#ffffff; font-weight:bold; font-size:10px; padding:2px 6px; border-radius:3px; border:1px solid #fbf2db;">🔄 [Recambio Medidor]</span>`;
+            } else {
+                const ultimo = filaActiva.Consumo || 0;
+                const anterior = filaAnterior.Consumo || 0;
+                const diff = (((ultimo - anterior) / (anterior || 1)) * 100).toFixed(1);
+                if (ultimo >= anterior) {
+                    el.innerHTML = `<span style="color:#e74c3c; font-weight:bold; margin-left: 8px;">▲ +${diff}%</span>`;
+                } else {
+                    el.innerHTML = `<span style="color:#27ae60; font-weight:bold; margin-left: 8px;">▼ ${diff}%</span>`;
+                }
+            }
         } else {
-            el.innerHTML = `<span style="color:#27ae60; font-weight:bold;">▼ ${diff}%</span>`;
+            el.innerHTML = '';
         }
     } else {
-        document.getElementById('indicador-tendencia').innerHTML = '';
+        el.innerHTML = '';
     }
 
-    // Inyecta el número de medidor correspondiente a cada barra en el eje X
-    const etiquetas = registrosIndiv.map(r => {
+    ultimoLabels = registrosIndiv.map(r => {
         const mesAnio = `${r["Liq-Cuota"]}/${String(r[buscarClaveAnio(r)] || "").slice(-2)}`;
         const medidorCorto = r["Nro-Medidor"] ? `(M: ${r["Nro-Medidor"]})` : '(S/M)';
         return `${mesAnio} ${medidorCorto}`;
     });
+    ultimoDatos = registrosIndiv.map(r => r.Consumo);
     
-    const consumos = registrosIndiv.map(r => r.Consumo);
-    dibujarGrafico(etiquetas, consumos);
+    dibujarGrafico(ultimoLabels, ultimoDatos);
 }
 
 function dibujarGrafico(labels, datos) {
@@ -301,11 +342,11 @@ function dibujarGrafico(labels, datos) {
             labels: labels,
             datasets: [{
                 data: datos,
-                backgroundColor: 'rgba(93, 173, 226, 0.7)',
-                borderColor: '#5dade2',
+                backgroundColor: 'rgba(52, 152, 219, 0.75)',
+                borderColor: '#2980b9',
                 borderWidth: 1,
                 borderRadius: 4,
-                datalabels: { anchor: 'end', align: 'top', font: { size: 9, weight: 'bold' }, color: '#2e86c1' }
+                datalabels: { anchor: 'end', align: 'top', font: { size: 9, weight: 'bold' }, color: '#2c3e50' }
             }]
         },
         options: {
@@ -314,14 +355,99 @@ function dibujarGrafico(labels, datos) {
             plugins: { legend: { display: false }, datalabels: { display: true } },
             scales: {
                 y: { beginAtZero: true, suggestedMax: maxVal + (maxVal * 0.3), grid: { display: false }, ticks: { display: false } },
-                x: { grid: { display: false }, ticks: { font: { size: 8 } } } // Bajado a 8 para que entre bien el texto
+                x: { grid: { display: false }, ticks: { font: { size: 8 } } }
             }
         }
     });
 }
 
 // ==========================================
-// 5. GENERACIÓN DE REPORTES EN MODAL Y PDF
+// FUNCIONES PARA EL GRÁFICO MAXI CENTRADO (CON REPLICA DE DATOS)
+// ==========================================
+function abrirMaxiGrafico() {
+    if (!ultimoLabels || ultimoLabels.length === 0) return; 
+    
+    document.getElementById('modal-grafico-maxi').style.display = 'flex';
+    
+    // Réplica exacta de textos e indicadores
+    document.getElementById('titulo-grafico-maxi').innerText = document.getElementById('titulo-medidor').innerText;
+    document.getElementById('subtitulo-grafico-maxi').innerText = document.getElementById('info-domicilio').innerText;
+    document.getElementById('indicador-tendencia-maxi').innerHTML = document.getElementById('indicador-tendencia').innerHTML;
+    
+    // Réplica exacta de datos técnicos
+    document.getElementById('lbl-medidor-maxi').innerText = document.getElementById('lbl-medidor').innerText;
+    document.getElementById('lbl-lectura-maxi').innerText = document.getElementById('lbl-lectura').innerText;
+    document.getElementById('lbl-consumo-maxi').innerText = document.getElementById('lbl-consumo').innerText;
+    document.getElementById('lbl-periodo-nombre-maxi').innerText = document.getElementById('lbl-periodo-nombre').innerText;
+    
+    // Réplica de bloque de observaciones si existieran
+    const obsOrigen = document.getElementById('bloque-observacion');
+    const obsDestino = document.getElementById('bloque-observacion-maxi');
+    if(obsOrigen.style.display === 'block') {
+        document.getElementById('lbl-observacion-maxi').innerText = document.getElementById('lbl-observacion').innerText;
+        obsDestino.style.display = 'block';
+    } else {
+        obsDestino.style.display = 'none';
+    }
+
+    const ctxMaxi = document.getElementById('canvasGraficoMaxi').getContext('2d');
+    if (miGraficoMaxi) miGraficoMaxi.destroy();
+
+    const maxVal = Math.max(...ultimoDatos, 10);
+    
+    miGraficoMaxi = new Chart(ctxMaxi, {
+        type: 'bar',
+        data: {
+            labels: ultimoLabels,
+            datasets: [{
+                label: 'Consumo Mensual (kWh)',
+                data: ultimoDatos,
+                backgroundColor: 'rgba(41, 128, 185, 0.8)',
+                borderColor: '#2980b9',
+                borderWidth: 1.5,
+                borderRadius: 6,
+                datalabels: { 
+                    anchor: 'end', 
+                    align: 'top', 
+                    font: { size: 11, weight: 'bold' }, 
+                    color: '#2c3e50',
+                    formatter: function(value) { return parseInt(value || 0).toLocaleString() + " kWh"; }
+                }
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { 
+                legend: { display: false }, 
+                datalabels: { display: true } 
+            },
+            scales: {
+                y: { 
+                    beginAtZero: true, 
+                    suggestedMax: maxVal + (maxVal * 0.25), 
+                    grid: { color: '#f2f4f4' }, 
+                    ticks: { font: { size: 10 }, color: '#7f8c8d' } 
+                },
+                x: { 
+                    grid: { display: false }, 
+                    ticks: { font: { size: 10, weight: '600' }, color: '#34495e' } 
+                }
+            }
+        }
+    });
+}
+
+function cerrarMaxiGrafico() {
+    document.getElementById('modal-grafico-maxi').style.display = 'none';
+    if (miGraficoMaxi) {
+        miGraficoMaxi.destroy();
+        miGraficoMaxi = null;
+    }
+}
+
+// ==========================================
+// 5. VISTAS PREVIAS Y EXPORTACIÓN A PDF
 // ==========================================
 function verVistaPrevia() {
     const periodo = document.getElementById('select-periodo').value;
@@ -384,7 +510,7 @@ function verVistaPrevia() {
     </tr></tbody></table>`;
 
     document.getElementById('preview-tabla-container').innerHTML = htmlTabla;
-    document.getElementById('modal-reporte').style.display = 'block';
+    document.getElementById('modal-reporte').style.display = 'flex';
 
     document.getElementById('btn-descarga-final').onclick = () => {
         const { jsPDF } = window.jspdf;
@@ -485,7 +611,7 @@ function verVistaPreviaGeneral() {
             htmlTabla += `<td style="text-align:right;">${consumoCelda > 0 ? consumoCelda.toLocaleString() : '-'}</td>`;
         });
 
-        htmlTabla += `<td class="col-total">${sumaFilaAcumulada.toLocaleString()}</td></tr>`;
+        htmlTabla += `<td style="text-align:right; font-weight:bold; background:#ffffff;">${sumaFilaAcumulada.toLocaleString()}</td></tr>`;
     });
 
     htmlTabla += `<tr class="total-row">
@@ -498,7 +624,7 @@ function verVistaPreviaGeneral() {
     htmlTabla += `<td style="text-align:right; background-color:#2c3e50; color:white;">${totalGlobalConsumo.toLocaleString()}</td></tr></tbody></table>`;
 
     document.getElementById('preview-tabla-container').innerHTML = htmlTabla;
-    document.getElementById('modal-reporte').style.display = 'block';
+    document.getElementById('modal-reporte').style.display = 'flex';
 
     document.getElementById('btn-descarga-final').onclick = () => {
         const { jsPDF } = window.jspdf;

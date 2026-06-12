@@ -1,0 +1,11 @@
+/* ==========================================================================
+   ARCHIVO DE RESPALDO - ESTRUCTURA TRADICIONAL
+   (Los estilos activos se ejecutan directamente desde la etiqueta style de index.html)
+   ========================================================================== */
+   html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
